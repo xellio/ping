@@ -5,17 +5,25 @@ import (
 	"os/exec"
 )
 
+//
+// Result struct
+//
 type Result struct {
-	Ip     net.IP
-	Raw    []byte
-	Output map[string]string
+	Ip  net.IP
+	Raw []byte
 }
 
-func Once(ip net.IP) (*Result, error) {
+//
+// Ping the given net.IP once
+//
+func Once(ip net.IP, args ...string) (*Result, error) {
 	r := &Result{
 		Ip: ip,
 	}
-	out, err := exec.Command("ping", "-c 1", ip.String()).Output()
+
+	args = append([]string{ip.String(), "-c 1"}, args...)
+
+	out, err := exec.Command("ping", args...).Output()
 	if err != nil {
 		return r, err
 	}

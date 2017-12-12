@@ -1,5 +1,7 @@
 # ping - a go wrapper for ping command
 
+[Documentation](https://godoc.org/github.com/xellio/ping)
+
 ### Example
 ```
 import (
