@@ -12,29 +12,29 @@ import (
 type Result struct {
 	Ip        net.IP
 	Raw       []byte
-	Meta      *resultMeta
-	Data      []*resultData
-	Statistic *resultStatistic
+	Meta      *ResultMeta
+	Data      []*ResultData
+	Statistic *ResultStatistic
 }
 
 //
 // Struct for storing meta information in Result.Meta
 //
-type resultMeta struct {
+type ResultMeta struct {
 	raw string
 }
 
 //
 // Struct for storing statistic information in Result.Statistic
 //
-type resultStatistic struct {
+type ResultStatistic struct {
 	raw []string
 }
 
 //
 // Struct for storing data information in Result.Data
 //
-type resultData struct {
+type ResultData struct {
 	raw string
 }
 
@@ -44,8 +44,8 @@ type resultData struct {
 func Once(ip net.IP, args ...string) (r *Result, err error) {
 	r = &Result{
 		Ip:        ip,
-		Meta:      &resultMeta{},
-		Statistic: &resultStatistic{},
+		Meta:      &ResultMeta{},
+		Statistic: &ResultStatistic{},
 	}
 
 	args = append([]string{ip.String(), "-c 1"}, args...)
@@ -88,7 +88,7 @@ func (r *Result) parseRaw() error {
 	for key, line := range lines {
 		switch {
 		case key == 0:
-			r.Meta = &resultMeta{
+			r.Meta = &ResultMeta{
 				raw: line,
 			}
 			break
@@ -98,7 +98,7 @@ func (r *Result) parseRaw() error {
 		case key == len(lines):
 			break
 		default:
-			r.Data = append(r.Data, &resultData{
+			r.Data = append(r.Data, &ResultData{
 				raw: line,
 			})
 		}
@@ -110,14 +110,14 @@ func (r *Result) parseRaw() error {
 //
 // Returns r.Meta as string
 //
-func (m *resultMeta) String() string {
+func (m *ResultMeta) String() string {
 	return m.raw
 }
 
 //
 // Returns r.Statistic as string
 //
-func (s *resultStatistic) String() string {
+func (s *ResultStatistic) String() string {
 
 	return strings.Join(s.raw, "\n")
 }
