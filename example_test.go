@@ -16,5 +16,8 @@ func ExampleOnce() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(string(res.Raw))
+	fmt.Println(string(res.Meta))
+
+	//Output:
+	//PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
 }

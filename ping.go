@@ -3,14 +3,18 @@ package ping
 import (
 	"net"
 	"os/exec"
+	"strings"
 )
 
 //
 // Result struct
 //
 type Result struct {
-	Ip  net.IP
-	Raw []byte
+	Ip        net.IP
+	Raw       []byte
+	Meta      string
+	Data      []string
+	Statistic []string
 }
 
 //
@@ -37,6 +41,35 @@ func (r *Result) execute(args []string) error {
 		return err
 	}
 	r.Raw = out
+
+	err = r.parseRaw()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Result) parseRaw() error {
+
+	lines := strings.Split(string(r.Raw), "\n")
+
+	statsBlockStart := len(lines) - 4
+
+	for key, line := range lines {
+		switch {
+		case key == 0:
+			r.Meta = line
+			break
+		case key >= statsBlockStart:
+			r.Statistic = append(r.Statistic, line)
+			break
+		case key == len(lines):
+			break
+		default:
+			r.Data = append(r.Data, line)
+		}
+	}
 
 	return nil
 }
