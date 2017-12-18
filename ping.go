@@ -3,6 +3,7 @@ package ping
 import (
 	"net"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -31,14 +32,55 @@ type ResultMeta struct {
 // Struct for storing statistic information in Result.Statistic
 //
 type ResultStatistic struct {
-	raw []string
+	raw               []string
+	PacketCount       int
+	ReceivedCount     int
+	PacketLossPercent float64
+	Time              float64
+	RTT               *ResultStatisticRTT
+}
+
+//
+// Struct fot storing round trip times
+//
+type ResultStatisticRTT struct {
+	raw  []string
+	Min  float64
+	Avg  float64
+	Max  float64
+	MDev float64
 }
 
 //
 // Struct for storing data information in Result.Data
 //
 type ResultData struct {
-	raw string
+	raw     string
+	IcmpSeq int
+	Ttl     int
+	Time    float64
+}
+
+//
+// Returns r.Meta as string
+//
+func (m *ResultMeta) String() string {
+	return m.raw
+}
+
+//
+// Returns r.Statistic as string
+//
+func (s *ResultStatistic) String() string {
+
+	return strings.Join(s.raw, "\n")
+}
+
+//
+// Returns r.Raw as string
+//
+func (r *Result) String() string {
+	return string(r.Raw)
 }
 
 //
@@ -71,7 +113,7 @@ func (r *Result) execute(args []string) error {
 	}
 	r.Raw = out
 
-	err = r.parseRaw()
+	err = r.parseResult()
 	if err != nil {
 		return err
 	}
@@ -80,9 +122,9 @@ func (r *Result) execute(args []string) error {
 }
 
 //
-// Parse and convert r.Raw
+// Parse the ping result
 //
-func (r *Result) parseRaw() error {
+func (r *Result) parseResult() error {
 
 	lines := strings.Split(string(r.Raw), "\n")
 
@@ -91,25 +133,25 @@ func (r *Result) parseRaw() error {
 	for key, line := range lines {
 		switch {
 		case key == 0:
-			splitted := strings.Split(line, " ")
-
-			parsedIp := net.ParseIP(splitted[2][1 : len(splitted[2])-1])
-			r.Meta = &ResultMeta{
-				raw:   line,
-				Host:  splitted[1],
-				Ip:    parsedIp,
-				Bytes: splitted[3],
+			err := r.parseMetaLine(line)
+			if err != nil {
+				return err
 			}
 			break
 		case key >= statsBlockStart:
-			r.Statistic.raw = append(r.Statistic.raw, line)
-			break
-		case key == len(lines):
+
+			err := r.parseStatisticLine(line)
+			if err != nil {
+				return err
+			}
 			break
 		default:
-			r.Data = append(r.Data, &ResultData{
-				raw: line,
-			})
+
+			lineData, ok := parseDataLine(line)
+			if !ok {
+				continue
+			}
+			r.Data = append(r.Data, lineData)
 		}
 	}
 
@@ -117,23 +159,75 @@ func (r *Result) parseRaw() error {
 }
 
 //
-// Returns r.Meta as string
+// Parse line for ResultData
 //
-func (m *ResultMeta) String() string {
-	return m.raw
+func parseDataLine(line string) (lineData *ResultData, ok bool) {
+
+	lineData = &ResultData{
+		raw: line,
+	}
+
+	splittedDataLine := strings.Split(line, ": ")
+	if len(splittedDataLine) < 2 {
+		return
+	}
+
+	splittedData := strings.Split(splittedDataLine[1], " ")
+
+	for _, pair := range splittedData {
+		kV := strings.Split(pair, "=")
+		switch kV[0] {
+		case "icmp_seq":
+			val, err := strconv.Atoi(kV[1])
+			if err != nil {
+				return
+			}
+			lineData.IcmpSeq = val
+			break
+		case "ttl":
+			val, err := strconv.Atoi(kV[1])
+			if err != nil {
+				return
+			}
+			lineData.Ttl = val
+			break
+		case "time":
+			val, err := strconv.ParseFloat(kV[1], 32)
+			if err != nil {
+				return
+			}
+			lineData.Time = val
+			break
+		}
+	}
+	ok = true
+	return
+
 }
 
 //
-// Returns r.Statistic as string
+// Parse line for statistic
 //
-func (s *ResultStatistic) String() string {
-
-	return strings.Join(s.raw, "\n")
+func (r *Result) parseStatisticLine(line string) error {
+	r.Statistic.raw = append(r.Statistic.raw, line)
+	return nil
 }
 
 //
-// Returns r.Raw as string
+// Parse line for meta
 //
-func (r *Result) String() string {
-	return string(r.Raw)
+func (r *Result) parseMetaLine(line string) error {
+	r.Meta = &ResultMeta{
+		raw: line,
+	}
+
+	splitted := strings.Split(line, " ")
+	r.Meta.Host = splitted[1]
+
+	parsedIp := net.ParseIP(splitted[2][1 : len(splitted[2])-1])
+	r.Meta.Ip = parsedIp
+
+	r.Meta.Bytes = splitted[3]
+
+	return nil
 }
