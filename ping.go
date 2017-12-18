@@ -21,7 +21,10 @@ type Result struct {
 // Struct for storing meta information in Result.Meta
 //
 type ResultMeta struct {
-	raw string
+	raw   string
+	Host  string
+	Ip    net.IP
+	Bytes string
 }
 
 //
@@ -88,8 +91,14 @@ func (r *Result) parseRaw() error {
 	for key, line := range lines {
 		switch {
 		case key == 0:
+			splitted := strings.Split(line, " ")
+
+			parsedIp := net.ParseIP(splitted[2][1 : len(splitted[2])-1])
 			r.Meta = &ResultMeta{
-				raw: line,
+				raw:   line,
+				Host:  splitted[1],
+				Ip:    parsedIp,
+				Bytes: splitted[3],
 			}
 			break
 		case key >= statsBlockStart:
