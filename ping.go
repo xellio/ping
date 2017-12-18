@@ -41,7 +41,7 @@ type ResultStatistic struct {
 }
 
 //
-// Struct fot storing round trip times
+// Struct for storing round trip times (RTT)
 //
 type ResultStatisticRTT struct {
 	raw  []string
@@ -72,8 +72,14 @@ func (m *ResultMeta) String() string {
 // Returns r.Statistic as string
 //
 func (s *ResultStatistic) String() string {
-
 	return strings.Join(s.raw, "\n")
+}
+
+//
+// Returns r.Statistic.RTT as string
+//
+func (rtt *ResultStatisticRTT) String() string {
+	return strings.Join(rtt.raw, "\n")
 }
 
 //
